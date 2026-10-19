@@ -64,6 +64,15 @@ table.m td.f{background:var(--tfk-green);color:var(--tfk-black);font-weight:700}
 table.m td.c{background:var(--tfk-yellow);color:var(--tfk-black)}
 table.m th.sel,table.m td.sel{outline:3px solid var(--tfk-black);outline-offset:-3px}
 
+/* ---- по кабинету ---- */
+table.rw td{vertical-align:top;line-height:1.25;cursor:pointer}
+table.rw td b{color:var(--tfk-black)}
+table.rw td .rs{display:block;font-size:12px}
+table.rw td.dbl{border-left:4px solid var(--tfk-yellow)}
+table.rw th.rh{width:56px}
+.row>div.rnav{display:flex;gap:8px;flex:0 0 auto}
+.row .rnav button{width:auto}
+
 /* ---- таблицы расписания, замены ---- */
 table.t{border-collapse:collapse;width:100%}
 table.t th{font-size:12px;color:var(--tfk-gray-70);text-align:left;padding:6px 8px;border-bottom:2px solid var(--tfk-black);text-transform:uppercase;letter-spacing:.04em}
@@ -101,3 +110,44 @@ table.m th.nn{color:var(--tfk-gray-50)}
 .lc-row span{color:var(--tfk-gray-70)}
 .lc-flags{margin-top:6px}
 .lc-flags i{display:inline-block;background:var(--tfk-yellow);color:var(--tfk-black);font-style:normal;font-size:13px;font-weight:700;padding:2px 8px;margin:0 6px 4px 0}
+
+/* ---- телефон (до 640px): главное — «Свободно» — первым, компактная шапка ---- */
+#view{display:flex;flex-direction:column}
+@media (max-width:640px){
+  .top .tfk-header{padding:10px 12px;gap:8px}
+  .tfk-brand img{height:36px}
+  .hero{padding:2px 12px 14px}
+  .hero h1{font-size:40px}
+  .hero .tfk-squares{display:none}
+  .stamp{font-size:12px}
+  a.zl{font-size:13px;padding:4px 10px}
+  .wrap{padding:0 12px 16px}
+  nav.tabs{flex-wrap:nowrap;overflow-x:auto;gap:18px;margin:12px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  nav.tabs::-webkit-scrollbar{display:none}
+  .tab{font-size:18px;white-space:nowrap}
+  .card{padding:14px 12px;margin-bottom:12px}
+  #view .c-free{order:-2}
+  #view .c-abs{order:-1}
+  h2{font-size:20px;margin:14px 0 8px}
+  .sub{font-size:13px;margin-bottom:10px}
+  .row{gap:10px}
+  .row>div{flex:1 1 140px;min-width:0}
+  .row>div:has(>button){flex:1 1 100%}
+  .row input,.row select,.row button{width:100%}
+  .chip{padding:8px 12px;font-size:16px}
+  table.m{min-width:0;border-spacing:1px}
+  table.m th{padding:4px 3px;font-size:12px}
+  table.m td{padding:8px 4px;font-size:12px;min-width:34px}
+  table.m th.rh{font-size:13px;max-width:84px;white-space:normal;line-height:1.1}
+  table.t th,table.t td{padding:6px 4px;font-size:14px}
+  table.rw{table-layout:fixed}
+  table.rw th.rh{width:26px;padding:4px 2px}
+  table.rw td{padding:6px 3px;font-size:11px;overflow-wrap:anywhere;hyphens:auto;min-width:0}
+  table.rw td .rs{font-size:11px}
+  table.rw th{font-size:11px;white-space:normal}
+  .band{height:28px;margin-top:20px}
+  .glogo{height:44px;margin-bottom:24px}
+  .lc-ov{align-items:flex-end;padding:0}
+  .lc-box{max-width:none;max-height:75vh;border-width:2px 0 0}
+}
+body[data-page=zameny] .wrap{padding-top:16px}

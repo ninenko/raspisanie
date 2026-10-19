@@ -8,7 +8,7 @@ const store = {
 };
 const isoToday = () => { const d = new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
 let DATA, CFG = {}, FABS = {}, P = {}, PER = [], SUBJ = {};
-let S = {date: isoToday(), period: null, floor: "", type: "", kind: "room", name: ""};
+let S = {date: isoToday(), period: null, floor: "", type: "", kind: "class", name: "", room: store.get("rasp.room", "")};
 let LABS = store.get("rasp.abs", {}), PLAN = store.get("rasp.plan", {});
 const cache = {};
 
@@ -72,7 +72,7 @@ function renderRooms(){
   const cols = usedP.length ? usedP : PER;
   const p = P[S.period];
   $("#view").innerHTML = `
-  <div class="card">
+  <div class="card c-abs">
     <h2 style="margin-top:0">Кого сегодня нет</h2>
     <p class="sub">Класс, которого нет в школе, освобождает свои кабинеты. Учитель, которого нет, — кабинеты <b>могут освободиться</b> (жёлтые): урок отменят или заменят. Отметки хранятся в этом браузере.</p>
     <div class="row">
@@ -87,13 +87,13 @@ function renderRooms(){
     <div>${at.map(x => `<span class="pill">${esc(x.teacher)}${x.note?" · "+esc(x.note):""}${x.src==="local"?` <span class="x" data-act="rmabs" data-v="${esc(x.teacher)}">×</span>`:""}</span>`).join("")}${ac.map(x => `<span class="pill">${esc(x.class)}${x.note?" · "+esc(x.note):""}${x.src==="local"?` <span class="x" data-act="rmcls" data-v="${esc(x.class)}">×</span>`:""}</span>`).join("") || (at.length ? "" : '<span class="muted">на эту дату никого не отмечено</span>')}
     ${(ac.concat(at)).some(x => x.src==="local") ? ' <button class="ghost" data-act="clrcls">Очистить все</button>' : ""}</div>
   </div>
-  <div class="card">
+  <div class="card c-free">
     <p class="sub">Кабинет свободен, если на выбранном уроке в нём нет занятий. Нажмите на ячейку в таблице — откроется карточка урока.</p>
     <div class="row">
       <div><label class="l">Дата</label><input type="date" id="fDate" value="${S.date}"></div>
       <div><label class="l">Урок</label><select id="fPer">${PER.map(x =>
         `<option value="${esc(x.id)}"${x.id===S.period?" selected":""}>${esc(plabel(x))}</option>`).join("")}</select></div>
-      <div><label class="l">Этаж</label><select id="fFloor"><option value="">все</option>${floors.map(f =>
+      <div${floors.length ? "" : " hidden"}><label class="l">Этаж</label><select id="fFloor"><option value="">все</option>${floors.map(f =>
         `<option${String(f)===S.floor?" selected":""}>${f}</option>`).join("")}</select></div>
       <div><label class="l">Тип</label><select id="fType"><option value="">все</option>${types.map(t =>
         `<option${t===S.type?" selected":""}>${esc(t)}</option>`).join("")}</select></div>
@@ -108,12 +108,12 @@ function renderRooms(){
     <div class="chips">${cond.map(r => { const e = states.get(r.name).evs[0];
       return `<span class="chip cond">${esc(r.name)} <small>${esc(e.class||"")} · ${esc(e.teacher||"")}</small></span>`; }).join("")}</div>` : ""}
   </div>
-  <div class="card">
+  <div class="card c-day">
     <h2 style="margin-top:0">Весь день: кабинеты × уроки</h2>
-    <p class="sub">Зелёное — свободно («–» — класс отсутствует), жёлтое — учитель отсутствует, серое — кабинеты, которые не используются (внизу таблицы).</p>
+    <p class="sub">Зелёное — свободно («–» — класс отсутствует), жёлтое — учитель отсутствует, серое — кабинеты, которые не используются (внизу таблицы). Нажмите на номер кабинета — откроется его неделя.</p>
     <div class="scroll"><table class="m"><thead><tr><th class="rh">Кабинет</th>${cols.map(c =>
       `<th class="${c.id===S.period?"sel":""}" data-act="setP" data-v="${esc(c.id)}" style="cursor:pointer">${esc(c.label)}</th>`).join("")}</tr></thead>
-    <tbody>${tblRooms.map(r => `<tr><th class="rh${isNN(r.name)?" nn":""}">${esc(r.name)}</th>${cols.map(c => {
+    <tbody>${tblRooms.map(r => `<tr><th class="rh${isNN(r.name)?" nn":""}" data-act="goroom" data-v="${esc(r.name)}" title="Неделя кабинета" style="cursor:pointer">${esc(r.name)}</th>${cols.map(c => {
       const st = roomState(r.name, c.id, evs, abs);
       const cls = isNN(r.name) ? "nn" : st.s === "free" ? "f" : st.s === "cond" ? "c" : "";
       const txt = st.s === "free" ? (st.byAbsent ? "–" : st.byCancel ? "✂" : "✓") : esc(st.evs[0].class || "•");
@@ -237,8 +237,9 @@ function renderConflicts(){
 
 /* ---------- вкладка: расписание сущности ---------- */
 function renderView(){
-  const kinds = {room:["Кабинет","rooms"], teacher:["Учитель","teachers"], class:["Класс","classes"]};
+  const kinds = {class:["Класс","classes"], teacher:["Учитель","teachers"]};
   if(!(DATA.meta.teachers||[]).length) delete kinds.teacher;
+  if(!kinds[S.kind]) S.kind = "class";
   const list = kinds[S.kind][1] === "rooms" ? DATA.meta.rooms.map(r => r.name) : DATA.meta[kinds[S.kind][1]];
   let grid = "";
   if(S.name && list.includes(S.name)){
@@ -251,7 +252,7 @@ function renderView(){
         return `<td>${c.map(e => `<div class="ev"><b>${esc(e.subject||"")}</b><br>${[S.kind!=="class"?e.class:null,S.kind!=="teacher"?e.teacher:null,S.kind!=="room"?(e.room?"каб. "+e.room:null):null].filter(Boolean).map(esc).join(" · ")}</div>`).join("")}</td>`;
       }).join("")}</tr>`).join("")}</tbody></table></div>`;
   }
-  $("#view").innerHTML = `<div class="card"><h1>Расписание</h1><p class="sub">Неделя кабинета, учителя или класса.</p>
+  $("#view").innerHTML = `<div class="card"><h1>Расписание</h1><p class="sub">Неделя класса или учителя. Неделя кабинета — на вкладке «По кабинету».</p>
     <div class="row"><div><label class="l">Что</label><select id="fKind">${Object.keys(kinds).map(k =>
       `<option value="${k}"${k===S.kind?" selected":""}>${kinds[k][0]}</option>`).join("")}</select></div>
     <div><label class="l">Название</label><input id="fName" list="dl" value="${esc(S.name)}" placeholder="начните вводить"></div></div>
@@ -260,12 +261,81 @@ function renderView(){
   $("#foot").textContent = "";
 }
 
+
+/* ---------- вкладка: по кабинету ---------- */
+const byNum = (a, b) => String(a).localeCompare(String(b), "ru", {numeric:true});
+function weekDate(d){ // дата дня недели d в неделе выбранной даты (в воскресенье — следующая неделя)
+  const wd = dayOf(S.date), base = new Date(S.date+"T12:00:00");
+  base.setDate(base.getDate() + (wd === 7 ? 1 : 1 - wd) + (d - 1));
+  return base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0");
+}
+function runs(ps, order){ // ["1","2","3","5"] -> "1–3, 5"
+  const out = []; let st = null, prev = null;
+  ps.forEach(p => { const i = order.indexOf(p);
+    if(st !== null && i === prev + 1){ prev = i; return; }
+    if(st !== null) out.push(st === prev ? order[st] : order[st]+"–"+order[prev]);
+    st = prev = i; });
+  if(st !== null) out.push(st === prev ? order[st] : order[st]+"–"+order[prev]);
+  return out.join(", ");
+}
+function renderRoom(){
+  const all = DATA.meta.rooms.filter(r => !r.hidden).slice().sort((a, b) => (isNN(a.name) - isNN(b.name)) || byNum(a.name, b.name));
+  if(!S.room || !all.some(r => r.name === S.room)) S.room = (all.find(r => !isNN(r.name)) || all[0]).name;
+  const days = DATA.meta.days, wd = dayOf(S.date), okDay = days.includes(wd);
+  const abs = new Set(absList(S.date).map(x => x.teacher));
+  ABSC = new Set(absClasses(S.date).map(x => x.class));
+  const pers = PER.filter(p => DATA.events.some(e => e.period === p.id));
+  const order = pers.map(p => p.label);
+  const mine = DATA.events.filter(e => e.room === S.room);
+  const r = all.find(x => x.name === S.room);
+  const todayEvs = dayEvents(S.date);
+  const stT = okDay ? new Map(pers.map(p => [p.id, roomState(S.room, p.id, todayEvs, abs)])) : new Map();
+  const freeT = pers.filter(p => stT.get(p.id) && stT.get(p.id).s === "free").map(p => p.label);
+  const condT = pers.filter(p => stT.get(p.id) && stT.get(p.id).s === "cond").map(p => p.label);
+  let busy = 0; days.forEach(d => pers.forEach(p => { if(mine.some(e => e.day === d && e.period === p.id)) busy++; }));
+  const total = days.length * pers.length;
+  const idx = all.findIndex(x => x.name === S.room);
+  const prevR = all[(idx - 1 + all.length) % all.length].name, nextR = all[(idx + 1) % all.length].name;
+  const meta = [r.type && r.type !== "общий" ? r.type : null, r.floor != null ? r.floor+" этаж" : null, r.capacity ? r.capacity+" мест" : null].filter(Boolean).join(" · ");
+  $("#view").innerHTML = `
+  <div class="card">
+    <h1>Кабинет ${esc(S.room)}</h1>
+    <p class="sub">${meta ? esc(meta)+". " : ""}${isNN(S.room) ? "Этот кабинет отмечен как неиспользуемый. " : ""}Неделя кабинета: зелёное — свободно. Нажмите на занятую ячейку — откроется карточка урока, на день — выбор даты.</p>
+    <div class="row">
+      <div><label class="l">Кабинет</label><select id="fRoom">${all.map(x =>
+        `<option value="${esc(x.name)}"${x.name===S.room?" selected":""}>${esc(x.name)}${isNN(x.name)?" (не исп.)":""}</option>`).join("")}</select></div>
+      <div class="rnav"><button class="ghost" data-act="goroom" data-v="${esc(prevR)}" title="Предыдущий">←</button><button class="ghost" data-act="goroom" data-v="${esc(nextR)}" title="Следующий">→</button></div>
+      <div><label class="l">Дата</label><input type="date" id="fDate" value="${S.date}"></div>
+    </div>
+    <h2>${okDay ? `${DN[wd]} ${fmtD(S.date)}: ${freeT.length ? "свободен на уроках "+esc(runs(freeT, order)) : "свободных уроков нет"}` : `${DN[wd]||"Воскресенье"} ${fmtD(S.date)} — в расписании нет такого дня`}</h2>
+    ${condT.length ? `<div class="chips"><span class="chip cond">Могут освободиться (учитель отсутствует): уроки ${esc(runs(condT, order))}</span></div>` : ""}
+    <p class="sub" style="margin-top:10px">За неделю занят ${busy} из ${total} уроков, свободен ${total - busy}.</p>
+  </div>
+  <div class="card">
+    <div class="scroll"><table class="m rw"><thead><tr><th class="rh" title="Урок">№</th>${days.map(d =>
+      `<th class="${d===wd?"sel":""}" data-act="setD" data-v="${weekDate(d)}" style="cursor:pointer">${DN[d]} ${fmtD(weekDate(d))}</th>`).join("")}</tr></thead>
+    <tbody>${pers.map(p => `<tr><th class="rh">${esc(p.label)}</th>${days.map(d => {
+      const isT = d === wd;
+      const st = isT ? stT.get(p.id) : null;
+      const evs = isT ? st.evs : mine.filter(e => e.day === d && e.period === p.id);
+      const free = isT ? st.s === "free" : !evs.length;
+      const cls = free ? "f" : (isT && st.s === "cond") ? "c" : "";
+      const txt = free ? (evs.length ? (st.byAbsent ? "– класса нет" : "✂ отмена") : "свободно")
+        : evs.map(e => `<div><b>${esc(e.class||"•")}${e.group?" <small>("+esc(e.group)+")</small>":""}</b> <span class="rs">${esc(e.subject||"")}</span></div>`).join("");
+      const tip = evs.map(e => [e.class, e.subject, e.teacher].filter(Boolean).join(" · ")).join(" | ");
+      return `<td class="${cls}${isT?" sel":""}${evs.length>1&&!free?" dbl":""}" title="${esc(tip)}" data-act="rcell" data-v="${weekDate(d)}|${esc(p.id)}">${txt}</td>`;
+    }).join("")}</tr>`).join("")}</tbody></table></div>
+  </div>`;
+  $("#foot").textContent = "Отметки отсутствующих учитываются только для выбранной даты (выделенный столбец).";
+}
+
 /* ---------- роутинг / действия ---------- */
 function route(){
+  const lc = document.getElementById("lcard"); if(lc) lc.remove();
   if(document.body.dataset.page === "zameny") return renderSubs();
   const t = (location.hash.replace(/^#\/?/, "") || "rooms");
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x.dataset.v === t));
-  ({rooms: renderRooms, view: renderView, conflicts: renderConflicts}[t] || renderRooms)();
+  ({rooms: renderRooms, room: renderRoom, view: renderView, conflicts: renderConflicts}[t] || renderRooms)();
 }
 function showCard(room, per){
   const evs = dayEvents(S.date), abs = new Set(absList(S.date).map(x => x.teacher));
@@ -296,6 +366,9 @@ function showCard(room, per){
 }
 const ACT = {
   cell: v => { const i = v.lastIndexOf("|"); S.period = v.slice(i+1); const room = v.slice(0, i); route(); showCard(room, S.period); },
+  goroom: v => { S.room = v; store.set("rasp.room", v); if(location.hash === "#/room") route(); else location.hash = "#/room"; },
+  setD: v => { S.date = v; S.period = null; route(); },
+  rcell: v => { const i = v.indexOf("|"); S.date = v.slice(0, i); S.period = v.slice(i+1); route(); showCard(S.room, S.period); },
   closecard: () => { const el = $("#lcard"); if(el) el.remove(); },
   tab: v => { location.hash = "#/"+v; },
   setP: v => { S.period = v; route(); },
@@ -349,6 +422,7 @@ document.addEventListener("change", ev => {
   else if(id === "fKind"){ S.kind = t.value; S.name = ""; }
   else if(id === "fName") S.name = t.value;
   else if(id === "fCf") S.cf = t.value;
+  else if(id === "fRoom"){ S.room = t.value; store.set("rasp.room", t.value); }
   else if(t.dataset.chg === "plan"){ if(t.value) PLAN[t.dataset.key] = t.value; else delete PLAN[t.dataset.key]; store.set("rasp.plan", PLAN); }
   else return;
   setTimeout(route, 0);
