@@ -100,7 +100,7 @@ function renderRooms(){
       const st = states.get(r.name);
       return `<span class="chip free" title="${st.byAbsent?"класс отсутствует":st.byCancel?"освобождён отменой урока":""}">${esc(r.name)}${r.capacity?` <small>${r.capacity} мест</small>`:""}${st.byAbsent?" <small>"+esc(st.evs.map(e => e.class).filter((v,i,a) => a.indexOf(v)===i).join(", "))+" нет</small>":st.byCancel?" ✂":""}</span>`;
     }).join("") || '<span class="muted">нет свободных</span>'}</div>
-    ${cond.length ? `<h2>Могут освободиться (учитель отсутствует, решение по уроку не принято)</h2>
+    ${cond.length ? `<h2>Могут освободиться (учитель отсутствует)</h2>
     <div class="chips">${cond.map(r => { const e = states.get(r.name).evs[0];
       return `<span class="chip cond">${esc(r.name)} <small>${esc(e.class||"")} · ${esc(e.teacher||"")}</small></span>`; }).join("")}</div>` : ""}
   </div>
