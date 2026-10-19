@@ -89,3 +89,15 @@ table.t td{padding:8px;border-bottom:1px solid var(--tfk-gray-25);vertical-align
 
 table.m td.nn{background:var(--tfk-gray-25);color:var(--tfk-gray-50);font-weight:400}
 table.m th.nn{color:var(--tfk-gray-50)}
+
+.lc-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
+.lc-box{position:relative;background:var(--tfk-white);border:2px solid var(--tfk-black);padding:20px 20px 12px;width:100%;max-width:420px;max-height:80vh;overflow:auto}
+.lc-x{position:absolute;top:6px;right:8px;border:0;background:none;color:var(--tfk-black);font-size:28px;line-height:1;padding:4px 8px;cursor:pointer}
+.lc-head{font-family:var(--tfk-font-display, inherit);text-transform:uppercase;font-weight:700;font-size:20px;letter-spacing:.02em;padding-right:32px}
+.lc-sub{color:var(--tfk-gray-70);font-size:14px;margin:2px 0 12px}
+.lc{border-top:1px solid var(--tfk-gray-25);padding:10px 0}
+.lc-subj{font-weight:700;font-size:18px;margin-bottom:6px}
+.lc-row{display:flex;justify-content:space-between;gap:16px;font-size:15px;padding:2px 0}
+.lc-row span{color:var(--tfk-gray-70)}
+.lc-flags{margin-top:6px}
+.lc-flags i{display:inline-block;background:var(--tfk-yellow);color:var(--tfk-black);font-style:normal;font-size:13px;font-weight:700;padding:2px 8px;margin:0 6px 4px 0}

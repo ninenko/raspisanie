@@ -88,7 +88,7 @@ function renderRooms(){
     ${(ac.concat(at)).some(x => x.src==="local") ? ' <button class="ghost" data-act="clrcls">Очистить все</button>' : ""}</div>
   </div>
   <div class="card">
-    <p class="sub">Кабинет свободен, если на выбранном уроке в нём нет занятий. Нажмите на ячейку в таблице, чтобы выбрать урок.</p>
+    <p class="sub">Кабинет свободен, если на выбранном уроке в нём нет занятий. Нажмите на ячейку в таблице — откроется карточка урока.</p>
     <div class="row">
       <div><label class="l">Дата</label><input type="date" id="fDate" value="${S.date}"></div>
       <div><label class="l">Урок</label><select id="fPer">${PER.map(x =>
@@ -118,7 +118,7 @@ function renderRooms(){
       const cls = isNN(r.name) ? "nn" : st.s === "free" ? "f" : st.s === "cond" ? "c" : "";
       const txt = st.s === "free" ? (st.byAbsent ? "–" : st.byCancel ? "✂" : "✓") : esc(st.evs[0].class || "•");
       const tip = st.evs.map(e => [e.class, e.subject, e.teacher].filter(Boolean).join(" · ")).join(" | ");
-      return `<td class="${cls}${c.id===S.period?" sel":""}" title="${esc(tip)}" data-act="setP" data-v="${esc(c.id)}">${txt}</td>`;
+      return `<td class="${cls}${c.id===S.period?" sel":""}" title="${esc(tip)}" data-act="cell" data-v="${esc(r.name)}|${esc(c.id)}">${txt}</td>`;
     }).join("")}</tr>`).join("")}</tbody></table></div>
   </div>`;
   $("#foot").textContent = "";
@@ -267,7 +267,36 @@ function route(){
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x.dataset.v === t));
   ({rooms: renderRooms, view: renderView, conflicts: renderConflicts}[t] || renderRooms)();
 }
+function showCard(room, per){
+  const evs = dayEvents(S.date), abs = new Set(absList(S.date).map(x => x.teacher));
+  const hit = evs.filter(e => e.room === room && overlap(e.period, per));
+  const wd = dayOf(S.date);
+  const rows = hit.map(e => {
+    const flags = [];
+    if(cancelled(e, S.date)) flags.push("урок отменён");
+    if(ABSC.has(e.class)) flags.push("класса нет");
+    if(e.teacher && abs.has(e.teacher)) flags.push("учителя нет");
+    return `<div class="lc">
+      <div class="lc-subj">${esc(e.subject || "Урок")}</div>
+      <div class="lc-row"><span>Класс</span><b>${esc(e.class || "—")}${e.group ? " ("+esc(e.group)+")" : ""}</b></div>
+      <div class="lc-row"><span>Учитель</span><b>${esc(e.teacher || "не указан")}</b></div>
+      ${flags.length ? `<div class="lc-flags">${flags.map(f => `<i>${esc(f)}</i>`).join("")}</div>` : ""}
+    </div>`;
+  }).join("");
+  const old = $("#lcard"); if(old) old.remove();
+  const el = document.createElement("div");
+  el.id = "lcard"; el.className = "lc-ov"; el.dataset.act = "closecard";
+  el.innerHTML = `<div class="lc-box" role="dialog" aria-modal="true">
+    <button class="lc-x" data-act="closecard" aria-label="Закрыть">×</button>
+    <div class="lc-head">Кабинет ${esc(room)} · ${esc(P[per] ? plabel(P[per]) : per+" урок")}</div>
+    <div class="lc-sub">${DN[wd] || ""} ${fmtD(S.date)}</div>
+    ${rows || '<div class="lc"><div class="lc-subj">Свободен</div><div class="lc-sub">В это время в кабинете нет занятий.</div></div>'}
+  </div>`;
+  document.body.appendChild(el);
+}
 const ACT = {
+  cell: v => { const i = v.lastIndexOf("|"); S.period = v.slice(i+1); const room = v.slice(0, i); route(); showCard(room, S.period); },
+  closecard: () => { const el = $("#lcard"); if(el) el.remove(); },
   tab: v => { location.hash = "#/"+v; },
   setP: v => { S.period = v; route(); },
   addabs: () => {
@@ -305,7 +334,12 @@ function copy(txt){
   const done = ok => { const el = $("#copied"); if(el) el.textContent = ok ? "скопировано" : "не удалось скопировать"; };
   try{ navigator.clipboard.writeText(txt).then(() => done(true), () => done(false)); }catch(e){ done(false); }
 }
-document.addEventListener("click", ev => { const t = ev.target.closest("[data-act]"); if(t && ACT[t.dataset.act]) ACT[t.dataset.act](t.dataset.v); });
+document.addEventListener("click", ev => {
+  const t = ev.target.closest("[data-act]");
+  if(t && t.dataset.act === "closecard" && t.classList.contains("lc-ov") && ev.target !== t) return; // клик внутри карточки не закрывает
+  if(t && ACT[t.dataset.act]) ACT[t.dataset.act](t.dataset.v);
+});
+document.addEventListener("keydown", ev => { if(ev.key === "Escape" && $("#lcard")) ACT.closecard(); });
 document.addEventListener("change", ev => {
   const t = ev.target, id = t.id;
   if(id === "fDate" && t.value){ S.date = t.value; S.period = null; }
