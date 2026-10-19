@@ -1,0 +1,11 @@
+/* Q3 DIN — brand display faces. Adjust the url() prefix to where the kit sits. */
+@font-face{
+  font-family:"Q3 DIN Condensed";
+  src:url("Q3_DIN_Condensed.ttf") format("truetype");
+  font-weight:400; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:"Q3 DIN";
+  src:url("Q3_DIN_normal.ttf") format("truetype");
+  font-weight:400; font-style:normal; font-display:swap;
+}

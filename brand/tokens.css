@@ -1,0 +1,63 @@
+/* ============================================================
+   Teach for Kyrgyzstan — «Заманбап Мугалим» · brand tokens
+   <link rel="stylesheet" href="TfK-Brand-Kit/tokens.css">
+   <link rel="stylesheet" href="TfK-Brand-Kit/fonts/fonts.css">  (Q3 DIN Condensed)
+   ============================================================ */
+:root{
+  /* Primary (2025+) */
+  --tfk-green:#99AF82;        /* pale green — main brand surface (heroes, covers, banners) */
+  --tfk-green-dark:#73875D;   /* hover states, small accents on white                      */
+  --tfk-yellow:#FFC607;       /* accent squares / highlights only — never body text        */
+  --tfk-black:#000000;
+  --tfk-white:#ffffff;
+  --tfk-ink:#1a1a1a;          /* body text on white                                        */
+  /* Brandbook auxiliary tints (use sparingly, light backgrounds) */
+  --tfk-mint:#C2D9CE;  --tfk-mint-pale:#DCEFE3;  --tfk-sage-gray:#A2B7B1;
+  --tfk-warmgray:#C1BAAA; --tfk-warmgray-pale:#F2F2ED;
+  --tfk-gray-70:#4d4d4d; --tfk-gray-50:#808080; --tfk-gray-25:#bfbfbf;
+  /* Type */
+  --tfk-font-display:"Q3 DIN Condensed","Arial Narrow Bold","Arial Narrow",Impact,sans-serif;
+  --tfk-font-body:Calibri,"Segoe UI",Arial,Helvetica,sans-serif;
+}
+
+/* ---- Ready-made components (brand is rectilinear: no radius, no shadows) ---- */
+.tfk-body{background:var(--tfk-white);color:var(--tfk-ink);font-family:var(--tfk-font-body);
+  line-height:1.55;text-align:left}
+.tfk-display{font-family:var(--tfk-font-display);text-transform:uppercase;
+  font-weight:400;line-height:.95;letter-spacing:.01em}
+.tfk-h1,.tfk-h2,.tfk-h3{font-family:var(--tfk-font-display);text-transform:uppercase;
+  color:var(--tfk-black);line-height:1;font-weight:400}
+.tfk-muted{color:var(--tfk-gray-50)}
+.tfk-link{color:var(--tfk-green-dark)}
+
+/* Signature surface: pale green field, white text (use white logo on it) */
+.tfk-hero{background:var(--tfk-green);color:var(--tfk-white);padding:48px 40px}
+.tfk-hero .tfk-h1,.tfk-hero .tfk-h2,.tfk-hero h1,.tfk-hero h2{color:var(--tfk-white)}
+
+.tfk-btn{display:inline-block;background:var(--tfk-black);color:var(--tfk-white);
+  font-family:var(--tfk-font-body);font-weight:700;padding:12px 22px;
+  text-decoration:none;border:0;cursor:pointer}
+.tfk-btn:hover{background:var(--tfk-green-dark)}
+.tfk-btn--yellow{background:var(--tfk-yellow);color:var(--tfk-black)}
+
+.tfk-card{background:var(--tfk-white);border:1px solid var(--tfk-gray-25);padding:24px}
+.tfk-quote{font-family:var(--tfk-font-body);font-style:italic;
+  border-left:4px solid var(--tfk-green);padding-left:16px;margin:14px 0}
+
+/* Yellow pixel-squares motif (decorative, place in a corner/edge) */
+.tfk-squares{display:grid;grid-template-columns:repeat(3,18px);grid-auto-rows:18px;width:max-content}
+.tfk-squares i{background:var(--tfk-yellow)}
+.tfk-squares i:nth-child(even){background:transparent}
+
+/* Official brandbook background patterns (tiles in patterns/) — never behind body text */
+.tfk-bg-watermark{background:var(--tfk-white) url("patterns/emblem-watermark.svg") repeat}
+.tfk-bg-stripes{background:var(--tfk-white) url("patterns/stripes.svg") repeat}
+.tfk-bg-rows{background:var(--tfk-white) url("patterns/emblem-rows.svg") repeat}
+
+/* Header */
+.tfk-header{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 24px;background:var(--tfk-green)}
+.tfk-header--light{background:var(--tfk-white);border-bottom:1px solid var(--tfk-gray-25)}
+.tfk-brand{display:flex;align-items:center;text-decoration:none}
+.tfk-brand img{height:44px;width:auto;display:block}
+.tfk-brand:hover{opacity:.85}

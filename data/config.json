@@ -1,0 +1,142 @@
+{
+  "_comment": "Значения помечены TODO, пока не подтверждены по e-kunduluk / у завуча.",
+  "school": {
+    "name": "ОШ №5, г. Кара-Балта",
+    "city": "Кара-Балта",
+    "language": "ru"
+  },
+  "source": {
+    "system": "kundoluk.edu.kg",
+    "url": "https://kundoluk.edu.kg/schedule/cards?page=rooms",
+    "login_required": true
+  },
+  "days": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "_days_note": "В выгрузке ПН–ПТ.",
+  "shifts": {
+    "1": "1 смена",
+    "2": "2 смена"
+  },
+  "periods": [
+    {
+      "id": "1",
+      "label": "1",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "2",
+      "label": "2",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "3",
+      "label": "3",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "4",
+      "label": "4",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "5",
+      "label": "5",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "6",
+      "label": "6",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "7",
+      "label": "7",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "8",
+      "label": "8",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "9",
+      "label": "9",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "10",
+      "label": "10",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "11",
+      "label": "11",
+      "start": null,
+      "end": null,
+      "shift": null
+    },
+    {
+      "id": "12",
+      "label": "12",
+      "start": null,
+      "end": null,
+      "shift": null
+    }
+  ],
+  "_periods_note": "Решение 2026-10-19: время звонков НЕ нужно, сайт работает только с номерами уроков 1–12.",
+  "columnMap": {
+    "_comment": "Имена колонок в выгрузке e-kunduluk -> канонические. Заполнить после изучения выгрузки.",
+    "day": "day",
+    "period": "period",
+    "subject": "subject",
+    "teacher": "teacher",
+    "class": "class",
+    "room": "room",
+    "group": "group"
+  },
+  "dayNames": {
+    "понедельник": 1,
+    "вторник": 2,
+    "среда": 3,
+    "четверг": 4,
+    "пятница": 5,
+    "суббота": 6,
+    "пн": 1,
+    "вт": 2,
+    "ср": 3,
+    "чт": 4,
+    "пт": 5,
+    "сб": 6
+  },
+  "staleAfterDays": 7,
+  "extraRooms": [
+    "11",
+    "логопед",
+    "Надомное обучение"
+  ]
+}

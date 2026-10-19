@@ -1,0 +1,88 @@
+/* Стиль «Заманбап Мугалим» (TfK Brand Kit): бледно-зелёный #99AF82, чёрный, белый, жёлтый только как акцент.
+   Q3 DIN Condensed (заглавные) для заголовков, Calibri для текста. Без скруглений, теней и градиентов. Всё по левому краю. */
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--tfk-white);color:var(--tfk-ink);font:16px/1.5 var(--tfk-font-body);text-align:left}
+body.locked .top,body.locked .wrap,body.locked .band{display:none}
+a{color:var(--tfk-green-dark)}
+.muted{color:var(--tfk-gray-50)}
+
+/* ---- шапка и заголовок ---- */
+.top{background:var(--tfk-green);position:relative;overflow:hidden}
+.tfk-brand img{height:56px}
+.top .tfk-header{background:transparent;max-width:1300px;margin:0 auto;padding:16px;flex-wrap:wrap}
+.hero{max-width:1300px;margin:0 auto;padding:8px 16px 36px;position:relative}
+.hero h1{font-family:var(--tfk-font-display);text-transform:uppercase;font-weight:400;color:var(--tfk-white);
+  font-size:clamp(46px,11vw,128px);line-height:.92;margin:0;letter-spacing:.01em}
+.hero .tfk-squares{position:absolute;right:16px;bottom:0}
+.hr{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stamp{font-size:13px;color:var(--tfk-black)}
+.stamp.stale{background:var(--tfk-yellow);padding:3px 8px;font-weight:700}
+a.zl{font-weight:700;font-size:14px;color:var(--tfk-black);text-decoration:none;border:2px solid var(--tfk-black);padding:5px 12px}
+a.zl:hover{background:var(--tfk-black);color:var(--tfk-white)}
+.band{height:56px;margin-top:40px}
+
+/* ---- вкладки ---- */
+.wrap{max-width:1300px;margin:0 auto;padding:0 16px 24px}
+nav.tabs{display:flex;gap:24px;margin:20px 0 16px;border-bottom:1px solid var(--tfk-gray-25);flex-wrap:wrap}
+.tab{font-family:var(--tfk-font-display);text-transform:uppercase;font-size:22px;line-height:1;padding:10px 0 8px;cursor:pointer;
+  color:var(--tfk-gray-50);border-bottom:4px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--tfk-black)}
+.tab.on{color:var(--tfk-black);border-bottom-color:var(--tfk-yellow)}
+
+/* ---- карточки, текст ---- */
+.card{background:var(--tfk-white);border:1px solid var(--tfk-gray-25);padding:20px;margin-bottom:16px}
+h1{font-family:var(--tfk-font-display);text-transform:uppercase;font-weight:400;font-size:32px;line-height:1;margin:0 0 6px;color:var(--tfk-black)}
+h2{font-family:var(--tfk-font-display);text-transform:uppercase;font-weight:400;font-size:22px;line-height:1.1;margin:18px 0 10px;color:var(--tfk-black)}
+.sub{color:var(--tfk-gray-70);font-size:14px;margin:0 0 14px}
+.banner{background:var(--tfk-yellow);color:var(--tfk-black);padding:10px 14px;margin:0 0 12px;font-size:14px;font-weight:700}
+.footer{color:var(--tfk-gray-50);font-size:13px;padding-top:4px}
+
+/* ---- формы ---- */
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+label.l{display:block;font-size:12px;color:var(--tfk-gray-70);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+select,input{padding:8px 10px;border:1px solid var(--tfk-gray-50);border-radius:0;background:var(--tfk-white);color:var(--tfk-black);font:16px var(--tfk-font-body)}
+select:focus,input:focus{outline:2px solid var(--tfk-black);outline-offset:-1px}
+button{padding:9px 18px;border:2px solid var(--tfk-black);border-radius:0;background:var(--tfk-black);color:var(--tfk-white);font:700 15px var(--tfk-font-body);cursor:pointer}
+button:hover{background:var(--tfk-green-dark);border-color:var(--tfk-green-dark)}
+button.ghost{background:transparent;color:var(--tfk-black)}
+button.ghost:hover{background:var(--tfk-black);color:var(--tfk-white)}
+
+/* ---- свободные кабинеты ---- */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:6px 12px;border:1px solid var(--tfk-gray-25);background:var(--tfk-warmgray-pale);font-size:15px}
+.chip.free{background:var(--tfk-green);border-color:var(--tfk-green);color:var(--tfk-black);font-weight:700}
+.chip.cond{background:var(--tfk-yellow);border-color:var(--tfk-yellow);color:var(--tfk-black)}
+.chip small{font-weight:400}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.m{border-collapse:separate;border-spacing:2px;min-width:560px;width:100%}
+table.m th{font-size:12px;color:var(--tfk-gray-70);font-weight:700;padding:4px 6px;text-align:left;white-space:nowrap}
+table.m th.rh{position:sticky;left:0;background:var(--tfk-white);font-size:14px;color:var(--tfk-black)}
+table.m td{text-align:left;padding:7px 8px;font-size:13px;background:var(--tfk-warmgray-pale);color:var(--tfk-gray-70);cursor:pointer}
+table.m td.f{background:var(--tfk-green);color:var(--tfk-black);font-weight:700}
+table.m td.c{background:var(--tfk-yellow);color:var(--tfk-black)}
+table.m th.sel,table.m td.sel{outline:3px solid var(--tfk-black);outline-offset:-3px}
+
+/* ---- таблицы расписания, замены ---- */
+table.t{border-collapse:collapse;width:100%}
+table.t th{font-size:12px;color:var(--tfk-gray-70);text-align:left;padding:6px 8px;border-bottom:2px solid var(--tfk-black);text-transform:uppercase;letter-spacing:.04em}
+table.t td{padding:8px;border-bottom:1px solid var(--tfk-gray-25);vertical-align:top;font-size:15px}
+.ev{background:var(--tfk-mint-pale);border-left:4px solid var(--tfk-green);padding:4px 8px;margin-bottom:4px;font-size:13px}
+.ev b{font-size:14px}
+.pill{display:inline-flex;gap:8px;align-items:center;background:var(--tfk-yellow);color:var(--tfk-black);padding:4px 10px;margin:0 8px 8px 0;font-size:14px;font-weight:700}
+.pill .x{cursor:pointer}
+
+/* ---- вход ---- */
+#gate{position:fixed;inset:0;z-index:100;background:var(--tfk-green);padding:24px;overflow:auto}
+.gbox{max-width:420px}
+.glogo{height:64px;width:auto;display:block;margin-bottom:40px}
+#gate h1{color:var(--tfk-white);font-size:clamp(56px,16vw,110px);line-height:.92;margin:0 0 12px}
+#gate p{color:var(--tfk-black);margin:0 0 16px}
+#gform{display:flex;gap:8px;flex-wrap:wrap}
+#gform input{flex:1;min-width:180px;border-color:var(--tfk-black)}
+#gform button{background:var(--tfk-yellow);color:var(--tfk-black);border-color:var(--tfk-yellow)}
+#gform button:hover{background:var(--tfk-black);color:var(--tfk-white);border-color:var(--tfk-black)}
+#gate .err{color:var(--tfk-black);font-weight:700;min-height:22px;margin-top:10px}
+
+.hr button.ghost{padding:5px 12px;font-size:14px}
