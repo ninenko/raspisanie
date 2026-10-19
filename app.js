@@ -56,6 +56,8 @@ function renderRooms(){
   const evs = dayEvents(S.date), abs = new Set(absList(S.date).map(x => x.teacher));
   const ac = absClasses(S.date); ABSC = new Set(ac.map(x => x.class));
   const addC = (DATA.meta.classes || []).filter(c => !ABSC.has(c));
+  const at = absList(S.date), hasTch = (DATA.meta.teachers || []).length > 0;
+  const addT = (DATA.meta.teachers || []).filter(t => !abs.has(t));
   const rooms = DATA.meta.rooms.filter(r => !r.hidden && (!S.floor || String(r.floor) === S.floor) && (!S.type || r.type === S.type));
   const states = new Map(rooms.map(r => [r.name, roomState(r.name, S.period, evs, abs)]));
   const free = rooms.filter(r => states.get(r.name).s === "free");
@@ -68,16 +70,18 @@ function renderRooms(){
   $("#view").innerHTML = `
   <div class="card">
     <h2 style="margin-top:0">Кого сегодня нет</h2>
-    <p class="sub">Введите класс, которого нет в школе (болезнь, поездка). Его кабинеты на этой дате считаются свободными. Отметки хранятся в этом браузере.</p>
+    <p class="sub">Класс, которого нет в школе, освобождает свои кабинеты. Учитель, которого нет, — кабинеты <b>могут освободиться</b> (жёлтые): урок отменят или заменят. Отметки хранятся в этом браузере.</p>
     <div class="row">
       <div><label class="l">Дата</label><input type="date" id="fDate" value="${S.date}"></div>
       <div><label class="l">Класс</label><input id="fCls" list="dlc" placeholder="например 5А" size="8" autocomplete="off"></div>
+      ${hasTch ? `<div><label class="l">Учитель</label><input id="fTch" list="dlt" placeholder="начните фамилию" size="22" autocomplete="off"></div>` : ""}
       <div><label class="l">Причина</label><input id="fNote" placeholder="болеет" size="14"></div>
       <div><button data-act="addcls">Добавить</button></div>
     </div>
+    <datalist id="dlt">${addT.map(t => `<option value="${esc(t)}">`).join("")}</datalist>
     <datalist id="dlc">${addC.map(c => `<option value="${esc(c)}">`).join("")}</datalist>
-    <div>${ac.map(x => `<span class="pill">${esc(x.class)}${x.note?" · "+esc(x.note):""}${x.src==="local"?` <span class="x" data-act="rmcls" data-v="${esc(x.class)}">×</span>`:""}</span>`).join("") || '<span class="muted">на эту дату никого не отмечено</span>'}
-    ${ac.some(x => x.src==="local") ? ' <button class="ghost" data-act="clrcls">Очистить все</button>' : ""}</div>
+    <div>${at.map(x => `<span class="pill">${esc(x.teacher)}${x.note?" · "+esc(x.note):""}${x.src==="local"?` <span class="x" data-act="rmabs" data-v="${esc(x.teacher)}">×</span>`:""}</span>`).join("")}${ac.map(x => `<span class="pill">${esc(x.class)}${x.note?" · "+esc(x.note):""}${x.src==="local"?` <span class="x" data-act="rmcls" data-v="${esc(x.class)}">×</span>`:""}</span>`).join("") || (at.length ? "" : '<span class="muted">на эту дату никого не отмечено</span>')}
+    ${(ac.concat(at)).some(x => x.src==="local") ? ' <button class="ghost" data-act="clrcls">Очистить все</button>' : ""}</div>
   </div>
   <div class="card">
     <p class="sub">Кабинет свободен, если на выбранном уроке в нём нет занятий. Нажмите на ячейку в таблице, чтобы выбрать урок.</p>
@@ -268,14 +272,27 @@ const ACT = {
     store.set("rasp.abs", LABS); route();
   },
   addcls: () => {
+    const note = $("#fNote").value.trim() || null;
     const c = $("#fCls").value.trim().toUpperCase().replace(/\s+/g, "");
-    const known = (DATA.meta.classes || []).find(x => x.toUpperCase() === c);
-    if(!known){ $("#fCls").style.outline = "2px solid #c00"; $("#fCls").focus(); return; }
-    (LABS[S.date] = LABS[S.date] || []).push({class:known, note:$("#fNote").value.trim() || null});
-    store.set("rasp.abs", LABS); route();
+    const tEl = $("#fTch"), tv = tEl ? tEl.value.trim().toLowerCase() : "";
+    if(!c && !tv){ $("#fCls").focus(); return; }
+    let added = false;
+    if(c){
+      const known = (DATA.meta.classes || []).find(x => x.toUpperCase() === c);
+      if(!known){ $("#fCls").style.outline = "2px solid #c00"; $("#fCls").focus(); return; }
+      (LABS[S.date] = LABS[S.date] || []).push({class:known, note}); added = true;
+    }
+    if(tv){
+      const all = DATA.meta.teachers || [];
+      const hit = all.filter(x => x.toLowerCase() === tv);
+      const part = hit.length ? hit : all.filter(x => x.toLowerCase().startsWith(tv));
+      if(part.length !== 1){ tEl.style.outline = "2px solid #c00"; tEl.focus(); tEl.placeholder = part.length ? "уточните: "+part.length+" совпадения" : "нет такого учителя"; tEl.value = ""; if(!added) return; }
+      else { (LABS[S.date] = LABS[S.date] || []).push({teacher:part[0], note}); added = true; }
+    }
+    if(added){ store.set("rasp.abs", LABS); route(); }
   },
   rmcls: v => { LABS[S.date] = (LABS[S.date]||[]).filter(x => x.class !== v); store.set("rasp.abs", LABS); route(); },
-  clrcls: () => { LABS[S.date] = (LABS[S.date]||[]).filter(x => !x.class); store.set("rasp.abs", LABS); route(); },
+  clrcls: () => { LABS[S.date] = []; store.set("rasp.abs", LABS); route(); },
   rmabs: v => { LABS[S.date] = (LABS[S.date]||[]).filter(x => x.class || x.teacher !== v); store.set("rasp.abs", LABS); route(); },
   copysum: () => copy(subsSummary()),
   copyabs: () => { const o = {}; o[S.date] = absList(S.date).map(x => ({teacher:x.teacher, note:x.note||null})); copy(JSON.stringify(o, null, 2)); }
