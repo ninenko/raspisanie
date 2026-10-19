@@ -29,6 +29,8 @@ function absList(date){
     .forEach(x => { if(x.teacher && !seen.has(x.teacher)){ seen.add(x.teacher); out.push(x); } });
   return out;
 }
+const NN_DEFAULT = ["большой спорт зал", "малый спортзал", "11", "логопед"];
+const isNN = name => (CFG.notNeededRooms || NN_DEFAULT).includes(name);
 function currentPeriod(){ return PER[0].id; }
 /* отсутствующие классы на дату (из файла и из этого браузера) */
 function absClasses(date){
@@ -60,8 +62,10 @@ function renderRooms(){
   const addT = (DATA.meta.teachers || []).filter(t => !abs.has(t));
   const rooms = DATA.meta.rooms.filter(r => !r.hidden && (!S.floor || String(r.floor) === S.floor) && (!S.type || r.type === S.type));
   const states = new Map(rooms.map(r => [r.name, roomState(r.name, S.period, evs, abs)]));
-  const free = rooms.filter(r => states.get(r.name).s === "free");
-  const cond = rooms.filter(r => states.get(r.name).s === "cond");
+  const useful = rooms.filter(r => !isNN(r.name));
+  const free = useful.filter(r => states.get(r.name).s === "free");
+  const cond = useful.filter(r => states.get(r.name).s === "cond");
+  const tblRooms = useful.concat(rooms.filter(r => isNN(r.name)));
   const floors = [...new Set(DATA.meta.rooms.map(r => r.floor).filter(f => f != null))].sort();
   const types = [...new Set(DATA.meta.rooms.map(r => r.type).filter(Boolean))].sort();
   const usedP = PER.filter(p => evs.some(e => e.period === p.id));
@@ -95,7 +99,7 @@ function renderRooms(){
         `<option${t===S.type?" selected":""}>${esc(t)}</option>`).join("")}</select></div>
     </div>
     ${ok ? "" : `<p class="banner">${DN[wd]||"Воскресенье"} — в расписании нет такого дня.</p>`}
-    <h2>Свободно ${free.length} из ${rooms.length} · ${DN[wd]||""} ${fmtD(S.date)}, ${esc(plabel(p))}</h2>
+    <h2>Свободно ${free.length} из ${useful.length} · ${DN[wd]||""} ${fmtD(S.date)}, ${esc(plabel(p))}</h2>
     <div class="chips">${free.map(r => {
       const st = states.get(r.name);
       return `<span class="chip free" title="${st.byAbsent?"класс отсутствует":st.byCancel?"освобождён отменой урока":""}">${esc(r.name)}${r.capacity?` <small>${r.capacity} мест</small>`:""}${st.byAbsent?" <small>"+esc(st.evs.map(e => e.class).filter((v,i,a) => a.indexOf(v)===i).join(", "))+" нет</small>":st.byCancel?" ✂":""}</span>`;
@@ -106,12 +110,12 @@ function renderRooms(){
   </div>
   <div class="card">
     <h2 style="margin-top:0">Весь день: кабинеты × уроки</h2>
-    <p class="sub">Зелёное — свободно, жёлтое — учитель отсутствует.</p>
+    <p class="sub">Зелёное — свободно («–» — класс отсутствует), жёлтое — учитель отсутствует, серое — кабинеты, которые не используются (внизу таблицы).</p>
     <div class="scroll"><table class="m"><thead><tr><th class="rh">Кабинет</th>${cols.map(c =>
       `<th class="${c.id===S.period?"sel":""}" data-act="setP" data-v="${esc(c.id)}" style="cursor:pointer">${esc(c.label)}</th>`).join("")}</tr></thead>
-    <tbody>${rooms.map(r => `<tr><th class="rh">${esc(r.name)}</th>${cols.map(c => {
+    <tbody>${tblRooms.map(r => `<tr><th class="rh${isNN(r.name)?" nn":""}">${esc(r.name)}</th>${cols.map(c => {
       const st = roomState(r.name, c.id, evs, abs);
-      const cls = st.s === "free" ? "f" : st.s === "cond" ? "c" : "";
+      const cls = isNN(r.name) ? "nn" : st.s === "free" ? "f" : st.s === "cond" ? "c" : "";
       const txt = st.s === "free" ? (st.byAbsent ? "–" : st.byCancel ? "✂" : "✓") : esc(st.evs[0].class || "•");
       const tip = st.evs.map(e => [e.class, e.subject, e.teacher].filter(Boolean).join(" · ")).join(" | ");
       return `<td class="${cls}${c.id===S.period?" sel":""}" title="${esc(tip)}" data-act="setP" data-v="${esc(c.id)}">${txt}</td>`;

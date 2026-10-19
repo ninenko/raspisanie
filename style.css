@@ -86,3 +86,6 @@ table.t td{padding:8px;border-bottom:1px solid var(--tfk-gray-25);vertical-align
 #gate .err{color:var(--tfk-black);font-weight:700;min-height:22px;margin-top:10px}
 
 .hr button.ghost{padding:5px 12px;font-size:14px}
+
+table.m td.nn{background:var(--tfk-gray-25);color:var(--tfk-gray-50);font-weight:400}
+table.m th.nn{color:var(--tfk-gray-50)}
