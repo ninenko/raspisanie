@@ -133,7 +133,7 @@
     "пт": 5,
     "сб": 6
   },
-  "staleAfterDays": 7,
+  "staleAfterDays": 45,
   "extraRooms": [
     "11",
     "логопед",

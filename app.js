@@ -31,7 +31,12 @@ function absList(date){
 }
 const NN_DEFAULT = ["большой спорт зал", "малый спортзал", "11", "логопед"];
 const isNN = name => (CFG.notNeededRooms || NN_DEFAULT).includes(name);
-function currentPeriod(){ return PER[0].id; }
+function currentPeriod(){ const s = store.get("rasp.per", null); return (s && s.date === S.date && P[s.p]) ? s.p : PER[0].id; }
+const savePer = p => store.set("rasp.per", {date: S.date, p});
+/* латиница, похожая на кириллицу (5A → 5А): класс находится и при английской раскладке */
+const LAT = {A:"А",B:"В",E:"Е",K:"К",M:"М",H:"Н",O:"О",P:"Р",C:"С",T:"Т",X:"Х",Y:"У"};
+const normCls = s => String(s || "").trim().toUpperCase().replace(/\s+/g, "").replace(/[ABEKMHOPCTXY]/g, ch => LAT[ch]);
+const legend = items => `<div class="legend">${items.map(([c, t]) => `<span><i class="sw ${c}"></i>${t}</span>`).join("")}</div>`;
 /* отсутствующие классы на дату (из файла и из этого браузера) */
 function absClasses(date){
   const out = [], seen = new Set();
@@ -41,6 +46,8 @@ function absClasses(date){
 }
 let ABSC = new Set();
 
+/* классный час: кабинет формально закреплён, но учитель вправе его перенести, и кабинет можно занять */
+const isHR = e => /^\s*классный\s+час/i.test(e.subject || "");
 /* ---------- состояние кабинета в уроке ---------- */
 function roomState(room, pid, evs, abs){
   const hit = evs.filter(e => e.room === room && overlap(e.period, pid));
@@ -48,6 +55,7 @@ function roomState(room, pid, evs, abs){
   const act = hit.filter(e => !cancelled(e, S.date) && !ABSC.has(e.class));
   if(!act.length) return {s:"free", evs:hit, byCancel:true, byAbsent:hit.some(e => ABSC.has(e.class))};
   if(act.every(e => abs.has(e.teacher))) return {s:"cond", evs:act};
+  if(act.every(isHR)) return {s:"hr", evs:act};
   return {s:"busy", evs:act};
 }
 
@@ -65,6 +73,7 @@ function renderRooms(){
   const useful = rooms.filter(r => !isNN(r.name));
   const free = useful.filter(r => states.get(r.name).s === "free");
   const cond = useful.filter(r => states.get(r.name).s === "cond");
+  const hrs = useful.filter(r => states.get(r.name).s === "hr");
   const tblRooms = useful.concat(rooms.filter(r => isNN(r.name)));
   const floors = [...new Set(DATA.meta.rooms.map(r => r.floor).filter(f => f != null))].sort();
   const types = [...new Set(DATA.meta.rooms.map(r => r.type).filter(Boolean))].sort();
@@ -73,11 +82,10 @@ function renderRooms(){
   const p = P[S.period];
   $("#view").innerHTML = `
   <div class="card c-abs">
-    <h2 style="margin-top:0">Кого сегодня нет</h2>
-    <p class="sub">Класс, которого нет в школе, освобождает свои кабинеты. Учитель, которого нет, — кабинеты <b>могут освободиться</b> (жёлтые): урок отменят или заменят. Отметки хранятся в этом браузере.</p>
+    <h2 style="margin-top:0">Кого нет · ${DN[wd]||""} ${fmtD(S.date)}</h2>
+    <p class="sub">Класс, которого нет в школе, освобождает свои кабинеты. Учитель, которого нет, — кабинеты <b>могут освободиться</b> (жёлтые): урок отменят или заменят. Отметки — на дату, выбранную выше, и хранятся только в этом браузере.</p>
     <div class="row">
-      <div><label class="l">Дата</label><input type="date" id="fDate" value="${S.date}"></div>
-      <div><label class="l">Класс</label><input id="fCls" list="dlc" placeholder="например 5А" size="8" autocomplete="off"></div>
+      <div><label class="l">Класс</label><input id="fCls" list="dlc" placeholder="5А" size="8" autocomplete="off"></div>
       ${hasTch ? `<div><label class="l">Учитель</label><input id="fTch" list="dlt" placeholder="начните фамилию" size="22" autocomplete="off"></div>` : ""}
       <div><label class="l">Причина</label><input id="fNote" placeholder="болеет" size="14"></div>
       <div><button data-act="addcls">Добавить</button></div>
@@ -88,7 +96,7 @@ function renderRooms(){
     ${(ac.concat(at)).some(x => x.src==="local") ? ' <button class="ghost" data-act="clrcls">Очистить все</button>' : ""}</div>
   </div>
   <div class="card c-free">
-    <p class="sub">Кабинет свободен, если на выбранном уроке в нём нет занятий. Нажмите на ячейку в таблице — откроется карточка урока.</p>
+    <p class="sub">Кабинет свободен, если на выбранном уроке в нём нет занятий.</p>
     <div class="row">
       <div><label class="l">Дата</label><input type="date" id="fDate" value="${S.date}"></div>
       <div><label class="l">Урок</label><select id="fPer">${PER.map(x =>
@@ -107,16 +115,19 @@ function renderRooms(){
     ${cond.length ? `<h2>Могут освободиться (учитель отсутствует)</h2>
     <div class="chips">${cond.map(r => { const e = states.get(r.name).evs[0];
       return `<span class="chip cond">${esc(r.name)} <small>${esc(e.class||"")} · ${esc(e.teacher||"")}</small></span>`; }).join("")}</div>` : ""}
+    ${hrs.length ? `<h2>Классный час: можно занять, если учитель перенесёт</h2>
+    <div class="chips">${hrs.map(r => { const e = states.get(r.name).evs[0];
+      return `<span class="chip hr">${esc(r.name)} <small>кл. час ${esc(e.class||"")}${e.teacher ? " · "+esc(e.teacher) : ""}</small></span>`; }).join("")}</div>` : ""}
   </div>
   <div class="card c-day">
     <h2 style="margin-top:0">Весь день: кабинеты × уроки</h2>
-    <p class="sub">Зелёное — свободно («–» — класс отсутствует), жёлтое — учитель отсутствует, серое — кабинеты, которые не используются (внизу таблицы). Нажмите на номер кабинета — откроется его неделя.</p>
+    ${legend([["f","свободно («–» класса нет, ✂ отмена)"],["c","учитель отсутствует: может освободиться"],["h","кч: классный час, можно занять"],["b","занято"],["nn","не используется"]])}<p class="sub">Нажмите на ячейку — карточка урока, на номер урока — выбрать его, на кабинет — его неделя.</p>
     <div class="scroll"><table class="m"><thead><tr><th class="rh">Кабинет</th>${cols.map(c =>
       `<th class="${c.id===S.period?"sel":""}" data-act="setP" data-v="${esc(c.id)}" style="cursor:pointer">${esc(c.label)}</th>`).join("")}</tr></thead>
     <tbody>${tblRooms.map(r => `<tr><th class="rh${isNN(r.name)?" nn":""}" data-act="goroom" data-v="${esc(r.name)}" title="Неделя кабинета" style="cursor:pointer">${esc(r.name)}</th>${cols.map(c => {
       const st = roomState(r.name, c.id, evs, abs);
-      const cls = isNN(r.name) ? "nn" : st.s === "free" ? "f" : st.s === "cond" ? "c" : "";
-      const txt = st.s === "free" ? (st.byAbsent ? "–" : st.byCancel ? "✂" : "✓") : esc(st.evs[0].class || "•");
+      const cls = isNN(r.name) ? "nn" : st.s === "free" ? "f" : st.s === "cond" ? "c" : st.s === "hr" ? "h" : "";
+      const txt = isNN(r.name) && st.s === "free" ? "" : st.s === "free" ? (st.byAbsent ? "–" : st.byCancel ? "✂" : "✓") : esc(st.evs[0].class || "•") + (st.s === "hr" ? " <small>кч</small>" : "");
       const tip = st.evs.map(e => [e.class, e.subject, e.teacher].filter(Boolean).join(" · ")).join(" | ");
       return `<td class="${cls}${c.id===S.period?" sel":""}" title="${esc(tip)}" data-act="cell" data-v="${esc(r.name)}|${esc(c.id)}">${txt}</td>`;
     }).join("")}</tr>`).join("")}</tbody></table></div>
@@ -210,27 +221,32 @@ function renderConflicts(){
   c.rooms.forEach(x => { cnt[x.room] = (cnt[x.room] || 0) + 1; });
   const top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || a.localeCompare(b, "ru", {numeric:true})).slice(0, 8);
   const week = DATA.source && DATA.source.week ? " (неделя "+DATA.source.week+")" : "";
-  const sel = S.cf || "all";
-  const rooms = c.rooms.filter(x => sel === "all" || x.room === sel);
+  const sel = S.cf || "all", onlyHard = S.hrHide === "1";
+  /* совпадение с классным часом не страшно: учитель может перенести его в другой кабинет */
+  const mildR = x => x.evs.some(isHR), mildC = x => x.evs.some(isHR);
+  const hardR = c.rooms.filter(x => !mildR(x)), hardC = c.classes.filter(x => !mildC(x));
+  const rooms = c.rooms.filter(x => (sel === "all" || x.room === sel) && !(onlyHard && mildR(x)));
+  const classes = c.classes.filter(x => !(onlyHard && mildC(x)));
   $("#view").innerHTML = `
   <div class="card">
     <h1>Двойные брони${esc(week)}</h1>
     <p class="sub">Автоматическая проверка расписания. <b>Это не обязательно ошибки:</b> общие кабинеты и деление класса на подгруппы выглядят так же. Что проверить: (1) где это сознательное совмещение двух классов в одном кабинете, (2) где подгруппа не отмечена в расписании, (3) где это реальная накладка.</p>
-    <div class="chips"><span class="chip cond">Кабинеты с 2+ классами: <b>${c.rooms.length}</b></span><span class="chip cond">Классы на 2+ урока одновременно: <b>${c.classes.length}</b></span></div>
+    <div class="chips"><span class="chip cond">Кабинеты с 2+ классами: <b>${c.rooms.length}</b>, без классного часа: <b>${hardR.length}</b></span><span class="chip cond">Классы на 2+ урока одновременно: <b>${c.classes.length}</b>, без классного часа: <b>${hardC.length}</b></span><span class="chip hr">Совпадения с классным часом (не страшно): <b>${c.rooms.length - hardR.length + c.classes.length - hardC.length}</b></span></div>
     <p class="sub" style="margin-top:12px">Чаще всего: ${top.map(r => "каб. "+esc(r)+" — "+cnt[r]).join(", ")}.</p>
   </div>
   <div class="card">
     <h2 style="margin-top:0">A. Один кабинет — несколько классов в одно время</h2>
-    <div class="row"><div><label class="l">Кабинет</label><select id="fCf"><option value="all">все</option>${Object.keys(cnt).sort((a, b) => a.localeCompare(b, "ru", {numeric:true})).map(r =>
+    <p class="sub">Строки со штриховкой и пометкой «кч» — среди уроков есть классный час: учитель может перенести его в другой кабинет, это не страшно.</p>
+    <div class="row"><div><label class="l">Показывать</label><select id="fHr"><option value="0"${onlyHard?"":" selected"}>все совпадения</option><option value="1"${onlyHard?" selected":""}>без классного часа</option></select></div><div><label class="l">Кабинет</label><select id="fCf"><option value="all">все</option>${Object.keys(cnt).sort((a, b) => a.localeCompare(b, "ru", {numeric:true})).map(r =>
       `<option value="${esc(r)}"${r===sel?" selected":""}>${esc(r)} (${cnt[r]})</option>`).join("")}</select></div></div>
     <div class="scroll"><table class="t"><thead><tr><th>День</th><th>Урок</th><th>Кабинет</th><th>Что записано</th></tr></thead><tbody>${rooms.map(x =>
-      `<tr><td>${DN[x.day]}</td><td>${esc(x.period)}</td><td>${esc(x.room)}</td><td>${x.evs.map(e => `<div>${evTxt(e).replace(/ · каб\. [^·]*$/, "")}</div>`).join("")}</td></tr>`).join("")}</tbody></table></div>
+      `<tr${mildR(x) ? ' class="mild"' : ""}><td>${DN[x.day]}</td><td>${esc(x.period)}</td><td>${esc(x.room)}</td><td>${x.evs.map(e => `<div>${evTxt(e).replace(/ · каб\. [^·]*$/, "")}${isHR(e) ? ' <i class="kch">кч</i>' : ""}</div>`).join("")}${mildR(x) ? '<div class="rs">есть классный час, не страшно</div>' : ""}</td></tr>`).join("")}</tbody></table></div>
   </div>
   <div class="card">
     <h2 style="margin-top:0">B. Класс записан на 2+ урока одновременно</h2>
     <p class="sub">Случаи, когда у уроков разные подгруппы (1 гр. / 2 гр.), не считаются.</p>
-    <div class="scroll"><table class="t"><thead><tr><th>День</th><th>Урок</th><th>Класс</th><th>Что записано</th></tr></thead><tbody>${c.classes.map(x =>
-      `<tr><td>${DN[x.day]}</td><td>${esc(x.period)}</td><td>${esc(x.cls)}</td><td>${x.evs.map(e => `<div>${esc([e.subject, e.group, e.room ? "каб. "+e.room : null].filter(Boolean).join(" · "))}</div>`).join("")}</td></tr>`).join("")}</tbody></table></div>
+    <div class="scroll"><table class="t"><thead><tr><th>День</th><th>Урок</th><th>Класс</th><th>Что записано</th></tr></thead><tbody>${classes.map(x =>
+      `<tr${mildC(x) ? ' class="mild"' : ""}><td>${DN[x.day]}</td><td>${esc(x.period)}</td><td>${esc(x.cls)}</td><td>${x.evs.map(e => `<div>${esc([e.subject, e.group, e.room ? "каб. "+e.room : null].filter(Boolean).join(" · "))}${isHR(e) ? ' <i class="kch">кч</i>' : ""}</div>`).join("")}${mildC(x) ? '<div class="rs">есть классный час, не страшно</div>' : ""}</td></tr>`).join("")}</tbody></table></div>
   </div>`;
   $("#foot").textContent = "Учителя в этот отчёт не включены.";
 }
@@ -240,19 +256,19 @@ function renderView(){
   const kinds = {class:["Класс","classes"], teacher:["Учитель","teachers"]};
   if(!(DATA.meta.teachers||[]).length) delete kinds.teacher;
   if(!kinds[S.kind]) S.kind = "class";
-  const list = kinds[S.kind][1] === "rooms" ? DATA.meta.rooms.map(r => r.name) : DATA.meta[kinds[S.kind][1]];
+  const list = DATA.meta[kinds[S.kind][1]];
   let grid = "";
   if(S.name && list.includes(S.name)){
-    const mine = DATA.events.filter(e => (S.kind==="room" ? e.room : S.kind==="teacher" ? e.teacher : e.class) === S.name);
+    const mine = DATA.events.filter(e => (S.kind==="teacher" ? e.teacher : e.class) === S.name);
     const pers = PER.filter(p => mine.some(e => e.period === p.id));
     const days = DATA.meta.days;
     grid = `<div class="scroll"><table class="t"><thead><tr><th>Урок</th>${days.map(d => `<th>${DN[d]}</th>`).join("")}</tr></thead><tbody>${pers.map(p =>
       `<tr><td style="white-space:nowrap"><b>${esc(p.label)}</b></td>${days.map(d => {
         const c = mine.filter(e => e.day === d && e.period === p.id);
-        return `<td>${c.map(e => `<div class="ev"><b>${esc(e.subject||"")}</b><br>${[S.kind!=="class"?e.class:null,S.kind!=="teacher"?e.teacher:null,S.kind!=="room"?(e.room?"каб. "+e.room:null):null].filter(Boolean).map(esc).join(" · ")}</div>`).join("")}</td>`;
+        return `<td>${c.map(e => `<div class="ev${isHR(e) ? " hr" : ""}"><b>${esc(e.subject||"")}</b>${isHR(e) ? ' <i class="kch">кч</i>' : ""}<br>${[S.kind!=="class"?e.class:null,S.kind!=="teacher"?e.teacher:null,e.room?"каб. "+e.room:null].filter(Boolean).map(esc).join(" · ")}</div>`).join("")}</td>`;
       }).join("")}</tr>`).join("")}</tbody></table></div>`;
   }
-  $("#view").innerHTML = `<div class="card"><h1>Расписание</h1><p class="sub">Неделя класса или учителя. Неделя кабинета — на вкладке «По кабинету».</p>
+  $("#view").innerHTML = `<div class="card"><h1>Расписание</h1><p class="sub">Неделя класса или учителя. Неделя кабинета — на вкладке «По кабинету». Штриховка «кч» — классный час: учитель может перенести его в другой кабинет.</p>
     <div class="row"><div><label class="l">Что</label><select id="fKind">${Object.keys(kinds).map(k =>
       `<option value="${k}"${k===S.kind?" selected":""}>${kinds[k][0]}</option>`).join("")}</select></div>
     <div><label class="l">Название</label><input id="fName" list="dl" value="${esc(S.name)}" placeholder="начните вводить"></div></div>
@@ -300,7 +316,7 @@ function renderRoom(){
   $("#view").innerHTML = `
   <div class="card">
     <h1>Кабинет ${esc(S.room)}</h1>
-    <p class="sub">${meta ? esc(meta)+". " : ""}${isNN(S.room) ? "Этот кабинет отмечен как неиспользуемый. " : ""}Неделя кабинета: зелёное — свободно. Нажмите на занятую ячейку — откроется карточка урока, на день — выбор даты.</p>
+    <p class="sub">${meta ? esc(meta)+". " : ""}${isNN(S.room) ? "Этот кабинет отмечен как неиспользуемый. " : ""}Неделя кабинета: зелёное — свободно, штриховка — классный час (можно занять, если учитель перенесёт). Нажмите на занятую ячейку — откроется карточка урока, на день — выбор даты.</p>
     <div class="row">
       <div><label class="l">Кабинет</label><select id="fRoom">${all.map(x =>
         `<option value="${esc(x.name)}"${x.name===S.room?" selected":""}>${esc(x.name)}${isNN(x.name)?" (не исп.)":""}</option>`).join("")}</select></div>
@@ -319,9 +335,10 @@ function renderRoom(){
       const st = isT ? stT.get(p.id) : null;
       const evs = isT ? st.evs : mine.filter(e => e.day === d && e.period === p.id);
       const free = isT ? st.s === "free" : !evs.length;
-      const cls = free ? "f" : (isT && st.s === "cond") ? "c" : "";
+      const hrCell = !free && evs.length && evs.every(isHR) && !(isT && st.s === "cond");
+      const cls = free ? "f" : (isT && st.s === "cond") ? "c" : hrCell ? "h" : "";
       const txt = free ? (evs.length ? (st.byAbsent ? "– класса нет" : "✂ отмена") : "свободно")
-        : evs.map(e => `<div><b>${esc(e.class||"•")}${e.group?" <small>("+esc(e.group)+")</small>":""}</b> <span class="rs">${esc(e.subject||"")}</span></div>`).join("");
+        : evs.map(e => `<div><b>${esc(e.class||"•")}${e.group?" <small>("+esc(e.group)+")</small>":""}</b> <span class="rs">${esc(e.subject||"")}</span></div>`).join("") + (hrCell ? '<div class="rs">можно занять</div>' : "");
       const tip = evs.map(e => [e.class, e.subject, e.teacher].filter(Boolean).join(" · ")).join(" | ");
       return `<td class="${cls}${isT?" sel":""}${evs.length>1&&!free?" dbl":""}" title="${esc(tip)}" data-act="rcell" data-v="${weekDate(d)}|${esc(p.id)}">${txt}</td>`;
     }).join("")}</tr>`).join("")}</tbody></table></div>
@@ -332,11 +349,23 @@ function renderRoom(){
 /* ---------- роутинг / действия ---------- */
 function route(){
   const lc = document.getElementById("lcard"); if(lc) lc.remove();
-  if(document.body.dataset.page === "zameny") return renderSubs();
+  if(document.body.dataset.page === "zameny"){ renderSubs(); return afterRender(); }
   const t = (location.hash.replace(/^#\/?/, "") || "rooms");
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x.dataset.v === t));
   ({rooms: renderRooms, room: renderRoom, view: renderView, conflicts: renderConflicts}[t] || renderRooms)();
+  afterRender();
 }
+/* после отрисовки: доступ с клавиатуры и подсказка, что широкую таблицу можно прокрутить */
+function afterRender(){
+  document.querySelectorAll("[data-act]:not(button):not(td):not(.lc-ov)").forEach(el => { el.tabIndex = 0; if(!el.getAttribute("role")) el.setAttribute("role", "button"); });
+  document.querySelectorAll("#view .scroll").forEach(el => {
+    let h = el.nextElementSibling;
+    if(!h || !h.classList.contains("scrollhint")){ h = document.createElement("div"); h.className = "scrollhint"; h.textContent = "Таблица шире экрана — прокрутите вбок →"; el.after(h); }
+    const upd = () => { h.hidden = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4; };
+    el.onscroll = upd; upd();
+  });
+}
+window.addEventListener("resize", () => afterRender());
 function showCard(room, per){
   const evs = dayEvents(S.date), abs = new Set(absList(S.date).map(x => x.teacher));
   const hit = evs.filter(e => e.room === room && overlap(e.period, per));
@@ -346,6 +375,7 @@ function showCard(room, per){
     if(cancelled(e, S.date)) flags.push("урок отменён");
     if(ABSC.has(e.class)) flags.push("класса нет");
     if(e.teacher && abs.has(e.teacher)) flags.push("учителя нет");
+    if(isHR(e)) flags.push("классный час: учитель может перенести в другой кабинет");
     return `<div class="lc">
       <div class="lc-subj">${esc(e.subject || "Урок")}</div>
       <div class="lc-row"><span>Класс</span><b>${esc(e.class || "—")}${e.group ? " ("+esc(e.group)+")" : ""}</b></div>
@@ -363,37 +393,39 @@ function showCard(room, per){
     ${rows || '<div class="lc"><div class="lc-subj">Свободен</div><div class="lc-sub">В это время в кабинете нет занятий.</div></div>'}
   </div>`;
   document.body.appendChild(el);
+  const x = el.querySelector(".lc-x"); if(x) x.focus();
 }
 const ACT = {
-  cell: v => { const i = v.lastIndexOf("|"); S.period = v.slice(i+1); const room = v.slice(0, i); route(); showCard(room, S.period); },
+  cell: v => { const i = v.lastIndexOf("|"); S.period = v.slice(i+1); savePer(S.period); const room = v.slice(0, i); route(); showCard(room, S.period); },
   goroom: v => { S.room = v; store.set("rasp.room", v); if(location.hash === "#/room") route(); else location.hash = "#/room"; },
   setD: v => { S.date = v; S.period = null; route(); },
   rcell: v => { const i = v.indexOf("|"); S.date = v.slice(0, i); S.period = v.slice(i+1); route(); showCard(S.room, S.period); },
   closecard: () => { const el = $("#lcard"); if(el) el.remove(); },
   tab: v => { location.hash = "#/"+v; },
-  setP: v => { S.period = v; route(); },
+  setP: v => { S.period = v; savePer(v); route(); },
   addabs: () => {
-    const t = $("#fAdd").value; if(!t) return;
+    const t = $("#fAdd").value; if(!t || absList(S.date).some(x => x.teacher === t)) return;
     (LABS[S.date] = LABS[S.date] || []).push({teacher:t, note:$("#fNote").value.trim() || null});
     store.set("rasp.abs", LABS); route();
   },
   addcls: () => {
     const note = $("#fNote").value.trim() || null;
-    const c = $("#fCls").value.trim().toUpperCase().replace(/\s+/g, "");
+    const c = normCls($("#fCls").value);
     const tEl = $("#fTch"), tv = tEl ? tEl.value.trim().toLowerCase() : "";
     if(!c && !tv){ $("#fCls").focus(); return; }
     let added = false;
     if(c){
-      const known = (DATA.meta.classes || []).find(x => x.toUpperCase() === c);
-      if(!known){ $("#fCls").style.outline = "2px solid #c00"; $("#fCls").focus(); return; }
-      (LABS[S.date] = LABS[S.date] || []).push({class:known, note}); added = true;
+      const known = (DATA.meta.classes || []).find(x => normCls(x) === c);
+      if(!known){ const f = $("#fCls"); f.style.outline = "2px solid #c00"; f.placeholder = "нет такого класса"; f.value = ""; f.focus(); return; }
+      if(!absClasses(S.date).some(x => x.class === known)) (LABS[S.date] = LABS[S.date] || []).push({class:known, note});
+      added = true;
     }
     if(tv){
       const all = DATA.meta.teachers || [];
       const hit = all.filter(x => x.toLowerCase() === tv);
       const part = hit.length ? hit : all.filter(x => x.toLowerCase().startsWith(tv));
       if(part.length !== 1){ tEl.style.outline = "2px solid #c00"; tEl.focus(); tEl.placeholder = part.length ? "уточните: "+part.length+" совпадения" : "нет такого учителя"; tEl.value = ""; if(!added) return; }
-      else { (LABS[S.date] = LABS[S.date] || []).push({teacher:part[0], note}); added = true; }
+      else { if(!absList(S.date).some(x => x.teacher === part[0])) (LABS[S.date] = LABS[S.date] || []).push({teacher:part[0], note}); added = true; }
     }
     if(added){ store.set("rasp.abs", LABS); route(); }
   },
@@ -412,16 +444,20 @@ document.addEventListener("click", ev => {
   if(t && t.dataset.act === "closecard" && t.classList.contains("lc-ov") && ev.target !== t) return; // клик внутри карточки не закрывает
   if(t && ACT[t.dataset.act]) ACT[t.dataset.act](t.dataset.v);
 });
-document.addEventListener("keydown", ev => { if(ev.key === "Escape" && $("#lcard")) ACT.closecard(); });
+document.addEventListener("keydown", ev => {
+  if(ev.key === "Escape" && $("#lcard")){ ACT.closecard(); return; }
+  if((ev.key === "Enter" || ev.key === " ") && ev.target.matches && ev.target.matches("[data-act][role=button]")){ ev.preventDefault(); ev.target.click(); }
+});
 document.addEventListener("change", ev => {
   const t = ev.target, id = t.id;
   if(id === "fDate" && t.value){ S.date = t.value; S.period = null; }
-  else if(id === "fPer") S.period = t.value;
+  else if(id === "fPer"){ S.period = t.value; savePer(t.value); }
   else if(id === "fFloor") S.floor = t.value;
   else if(id === "fType") S.type = t.value;
   else if(id === "fKind"){ S.kind = t.value; S.name = ""; }
   else if(id === "fName") S.name = t.value;
   else if(id === "fCf") S.cf = t.value;
+  else if(id === "fHr") S.hrHide = t.value;
   else if(id === "fRoom"){ S.room = t.value; store.set("rasp.room", t.value); }
   else if(t.dataset.chg === "plan"){ if(t.value) PLAN[t.dataset.key] = t.value; else delete PLAN[t.dataset.key]; store.set("rasp.plan", PLAN); }
   else return;
@@ -430,13 +466,13 @@ document.addEventListener("change", ev => {
 
 async function boot(){
   try{
-    const j = (u, soft) => fetch(u+"?_="+Date.now()).then(r => { if(!r.ok) throw new Error(u+": "+r.status); return r.json(); }).catch(e => { if(soft) return {}; throw e; });
+    const j = (u, soft) => fetch(u, {cache: "no-cache"}).then(r => { if(!r.ok) throw new Error(u+": "+r.status); return r.json(); }).catch(e => { if(soft) return {}; throw e; });
     const r = await Promise.all([j("data/timetable.json"), j("data/absences.json", true), j("data/config.json", true)]);
     DATA = r[0]; FABS = r[1]; CFG = r[2];
     PER = DATA.meta.periods; PER.forEach(p => { P[p.id] = p; });
     DATA.events.forEach(e => { if(e.teacher){ (SUBJ[e.teacher] = SUBJ[e.teacher] || new Set()).add(e.subject); } });
-    const d = new Date(DATA.fetched_at), age = (Date.now()-d)/864e5, lim = CFG.staleAfterDays || 7;
-    const st = $("#stamp"); st.textContent = (DATA.school&&DATA.school.name ? DATA.school.name+" · " : "")+"данные от "+d.toLocaleDateString("ru-RU")+(age>lim&&!DATA.demo ? " — устарели ("+Math.floor(age)+" дн.)" : "");
+    const d = new Date(DATA.fetched_at), age = (Date.now()-d)/864e5, lim = CFG.staleAfterDays || 45;
+    const st = $("#stamp"); st.textContent = (DATA.school&&DATA.school.name ? DATA.school.name+" · " : "")+(DATA.source&&DATA.source.week ? "неделя "+DATA.source.week+" · " : "")+"выгрузка от "+d.toLocaleDateString("ru-RU")+(age>lim&&!DATA.demo ? " — "+Math.floor(age)+" дн. назад, проверьте, не сменилось ли расписание" : "");
     if(age > lim && !DATA.demo) st.classList.add("stale");
     let b = "";
     if(DATA.demo) b += '<div class="banner">ДЕМО-ДАННЫЕ: расписание вымышленное. Реальные данные появятся после подключения e-kunduluk.</div>';
@@ -473,7 +509,7 @@ let started = false;
 function unlock(){ document.body.classList.remove("locked"); const g = $("#gate"); if(g) g.remove(); if(!started){ started = true; boot(); } }
 /* ---------- вход ----------
    Общий пароль-«замок»: в коде только SHA-256 хэш. Это не защита данных (JSON лежит рядом и открыт по ссылке),
-   а чтобы случайный посетитель не открыл страницу. В расписании нет ФИО — только классы и кабинеты. */
+   а чтобы случайный посетитель не открыл страницу. В данных есть ФИО учителей (решение 2026-10-19), данных об учениках нет. */
 function showLoadError(e){
   $("#view").innerHTML = '<div class="card"><h1>Нет данных</h1><p class="sub">'+esc(e.message)+'</p><p>Если открываете файл с компьютера, запустите в папке site: <code>python -m http.server 8099</code> и откройте <code>http://localhost:8099/</code></p></div>';
 }
