@@ -472,7 +472,7 @@ async function boot(){
     PER = DATA.meta.periods; PER.forEach(p => { P[p.id] = p; });
     DATA.events.forEach(e => { if(e.teacher){ (SUBJ[e.teacher] = SUBJ[e.teacher] || new Set()).add(e.subject); } });
     const d = new Date(DATA.fetched_at), age = (Date.now()-d)/864e5, lim = CFG.staleAfterDays || 45;
-    const st = $("#stamp"); st.textContent = (DATA.school&&DATA.school.name ? DATA.school.name+" · " : "")+(DATA.source&&DATA.source.week ? "неделя "+DATA.source.week+" · " : "")+"выгрузка от "+d.toLocaleDateString("ru-RU")+(age>lim&&!DATA.demo ? " — "+Math.floor(age)+" дн. назад, проверьте, не сменилось ли расписание" : "");
+    const st = $("#stamp"); st.innerHTML = (DATA.school&&DATA.school.name ? '<span class="sch">'+esc(DATA.school.name)+" · </span>" : "")+(DATA.source&&DATA.source.week ? "неделя "+esc(DATA.source.week)+" · " : "")+"выгрузка от "+d.toLocaleDateString("ru-RU")+(age>lim&&!DATA.demo ? " — "+Math.floor(age)+" дн. назад, проверьте, не сменилось ли расписание" : "");
     if(age > lim && !DATA.demo) st.classList.add("stale");
     let b = "";
     if(DATA.demo) b += '<div class="banner">ДЕМО-ДАННЫЕ: расписание вымышленное. Реальные данные появятся после подключения e-kunduluk.</div>';

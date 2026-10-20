@@ -178,3 +178,21 @@ table.m th.rh.ax{white-space:nowrap}
   table.rw th.rh{width:40px}
   table.rw th.rh.ax{white-space:normal;line-height:1.1}
 }
+
+/* ---- компактная шапка (2026-10-20): логотип · название · «Замены» и дата в одну строку ---- */
+.top .tfk-header{padding:10px 16px;gap:8px 20px;justify-content:flex-start}
+.top .tfk-brand img{height:40px}
+.ttl{font-family:var(--tfk-font-display);text-transform:uppercase;font-weight:400;color:var(--tfk-white);
+  font-size:clamp(26px,3.2vw,42px);line-height:1;margin:0;letter-spacing:.01em;padding-top:4px}
+.top .hr{margin-left:auto}
+nav.tabs{margin-top:14px}
+@media (max-width:640px){
+  .top .tfk-header{padding:8px 12px;gap:6px 12px}
+  .top .tfk-brand img{height:30px}
+  .ttl{font-size:26px;padding-top:2px}
+  .top .hr{flex-basis:100%;margin-left:0;gap:4px 10px;flex-wrap:nowrap}
+  .top .hr a.zl{padding:2px 8px;font-size:13px;border-width:1px;white-space:nowrap}
+  .top .stamp{font-size:12px;line-height:1.2}
+  .top .stamp .sch{display:none}
+  nav.tabs{margin-top:10px}
+}
