@@ -122,7 +122,7 @@ function renderRooms(){
   <div class="card c-day">
     <h2 style="margin-top:0">Весь день: кабинеты × уроки</h2>
     ${legend([["f","свободно («–» класса нет, ✂ отмена)"],["c","учитель отсутствует: может освободиться"],["h","кч: классный час, можно занять"],["b","занято"],["nn","не используется"]])}<p class="sub">Нажмите на ячейку — карточка урока, на номер урока — выбрать его, на кабинет — его неделя.</p>
-    <div class="scroll"><table class="m"><thead><tr><th class="rh">Кабинет</th>${cols.map(c =>
+    <div class="scroll"><table class="m"><thead><tr><th class="rh ax" rowspan="2">Кабинет ↓</th><th class="ax" colspan="${cols.length}">Урок →</th></tr><tr>${cols.map(c =>
       `<th class="${c.id===S.period?"sel":""}" data-act="setP" data-v="${esc(c.id)}" style="cursor:pointer">${esc(c.label)}</th>`).join("")}</tr></thead>
     <tbody>${tblRooms.map(r => `<tr><th class="rh${isNN(r.name)?" nn":""}" data-act="goroom" data-v="${esc(r.name)}" title="Неделя кабинета" style="cursor:pointer">${esc(r.name)}</th>${cols.map(c => {
       const st = roomState(r.name, c.id, evs, abs);
@@ -328,7 +328,7 @@ function renderRoom(){
     <p class="sub" style="margin-top:10px">За неделю занят ${busy} из ${total} уроков, свободен ${total - busy}.</p>
   </div>
   <div class="card">
-    <div class="scroll"><table class="m rw"><thead><tr><th class="rh" title="Урок">№</th>${days.map(d =>
+    <div class="scroll"><table class="m rw"><thead><tr><th class="rh ax" rowspan="2">Урок ↓</th><th class="ax" colspan="${days.length}">День →</th></tr><tr>${days.map(d =>
       `<th class="${d===wd?"sel":""}" data-act="setD" data-v="${weekDate(d)}" style="cursor:pointer">${DN[d]} ${fmtD(weekDate(d))}</th>`).join("")}</tr></thead>
     <tbody>${pers.map(p => `<tr><th class="rh">${esc(p.label)}</th>${days.map(d => {
       const isT = d === wd;

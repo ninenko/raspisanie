@@ -169,3 +169,12 @@ body[data-page=zameny] .wrap{padding-top:16px}
 .legend .sw.nn{background:var(--tfk-gray-25)}
 .scrollhint{font-size:12px;font-weight:700;color:var(--tfk-gray-70);margin-top:6px}
 [role=button]:focus-visible,button:focus-visible{outline:3px solid var(--tfk-yellow);outline-offset:-3px}
+
+/* подписи осей матрицы: «Кабинет ↓», «Урок →» */
+table.m th.ax{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--tfk-black);border-bottom:2px solid var(--tfk-black);vertical-align:bottom}
+table.m th.rh.ax{white-space:nowrap}
+@media (max-width:640px){
+  table.m th.ax{font-size:11px;letter-spacing:0}
+  table.rw th.rh{width:40px}
+  table.rw th.rh.ax{white-space:normal;line-height:1.1}
+}
